@@ -1,0 +1,157 @@
+import React, { useState, useRef } from 'react';
+import {
+	View,
+	Text,
+	SafeAreaView,
+	KeyboardAvoidingView,
+	StyleSheet,
+	Image,
+	TextInput,
+	Button,
+	Pressable,
+} from 'react-native';
+import { useAuthContext, firebaseConfig } from '@keyspace/common';
+import { FirebaseRecaptchaVerifierModal } from 'expo-firebase-recaptcha';
+
+import TextButton from '../../components/buttons/TextButton';
+import InputWithIcon from '../../components/inputs/InputWithIcon';
+
+const styles = StyleSheet.create({
+	container: {
+		display: 'flex',
+		justifyContent: 'center',
+		// alignItems: 'spaceBetween',
+		padding: 40,
+		height: '100%',
+	},
+	logo: {
+		flex: 1,
+		width: '100%',
+		resizeMode: 'contain',
+	},
+	input: {
+		marginBottom: 10,
+	},
+	userInputContainer: {
+		marginBottom: 30,
+		marginTop: 30,
+		width: '100%',
+	},
+});
+
+const LoginScreen = () => {
+	const [phoneNumber, setPhoneNumber] = useState();
+	const [showOtpInput, setShowOtpInput] = useState(false);
+	const [verificationId, setVerificationId] = useState(null);
+	const recaptchaVerifier = useRef(null);
+	const [code, setCode] = useState('');
+	const [response, setResponse] = useState();
+	const {
+		user,
+		isLoading,
+		signOut,
+		setUpRecaptha,
+		recaptchaViewId,
+		auth,
+		signInWithPhoneNumber,
+	} = useAuthContext();
+	/* useEffect(() => {
+		 window.recaptchaVerifier = new RecaptchaVerifier(
+			'recaptcha-container',
+			{
+				size: 'normal',
+				callback: (response) => {
+					// reCAPTCHA solved, allow signInWithPhoneNumber.
+					// ...
+				},
+				'expired-callback': () => {
+					// Response expired. Ask user to solve reCAPTCHA again.
+					// ...
+				},
+			},
+			auth
+		); 
+	}, []);*/
+	const getOtp = () => {
+		signInWithPhoneNumber(auth, `+91${phoneNumber}`, recaptchaVerifier.current)
+			.then((res) => {
+				setResponse(res);
+			})
+			.catch((error) => setResponse({ error }));
+	};
+
+	const confirmCode = () => {
+		const credential = firebase.auth.PhoneAuthProvider.credential(
+			verificationId,
+			code
+		);
+		firebase
+			.auth()
+			.signInWithCredential(credential)
+			.then((result) => {
+				console.log(result);
+			});
+	};
+
+	const handleSubmit = () => {
+		if (!showOtpInput) {
+			setShowOtpInput(true);
+		} else {
+		}
+	};
+	return (
+		<KeyboardAvoidingView
+			behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+			style={styles.container}>
+			<FirebaseRecaptchaVerifierModal
+				ref={recaptchaVerifier}
+				firebaseConfig={firebaseConfig}
+				attemptInvisibleVerification
+			/>
+			<Image
+				source={require('../../../assets/keyspace2f2f2f.png')}
+				style={styles.logo}
+			/>
+			<Text>{JSON.stringify(response)}</Text>
+			<View style={styles.userInputContainer}>
+				{showOtpInput ? (
+					<>
+						<InputWithIcon
+							keyboardType='phone-pad'
+							style={styles.input}
+							onChangeText={setCode}
+							value={code}
+							placeholder='Enter the OTP'
+							iconName='chatbox-ellipses-outline'
+						/>
+						<TextButton
+							onClick={handle}
+							type='primary'
+							title={showOtpInput ? 'Verify OTP' : 'Get OTP'}
+							style={styles.button}
+						/>
+					</>
+				) : (
+					<>
+						<InputWithIcon
+							keyboardType='phone-pad'
+							style={styles.input}
+							onChangeText={setPhoneNumber}
+							value={phoneNumber}
+							placeholder='Enter your phone number'
+							iconName='call-outline'
+						/>
+						<TextButton
+							onClick={getOtp}
+							type='primary'
+							title={'Get OTP'}
+							style={styles.button}
+						/>
+					</>
+				)}
+			</View>
+		</KeyboardAvoidingView>
+	);
+};
+
+export default LoginScreen;
